@@ -34,17 +34,17 @@ public class BatchConfiguration {
     }
 
     @Bean
-    FlatFileItemReader<Product> reader() {
-        FlatFileItemReader<Product> reader = new FlatFileItemReader<>();
+    FlatFileItemReader<Person> reader() {
+        FlatFileItemReader<Person> reader = new FlatFileItemReader<>();
         reader.setResource(new ClassPathResource("input.csv"));
 
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
-        tokenizer.setNames("id", "quantity", "price");
+        tokenizer.setNames("id", "firstname", "lastname", "birthdate");
 
-        BeanWrapperFieldSetMapper<Product> mapper = new BeanWrapperFieldSetMapper<>();
-        mapper.setTargetType(Product.class);
+        BeanWrapperFieldSetMapper<Person> mapper = new BeanWrapperFieldSetMapper<>();
+        mapper.setTargetType(Person.class);
 
-        DefaultLineMapper<Product> lineMapper = new DefaultLineMapper<>();
+        DefaultLineMapper<Person> lineMapper = new DefaultLineMapper<>();
         lineMapper.setLineTokenizer(tokenizer);
         lineMapper.setFieldSetMapper(mapper);
 
@@ -53,20 +53,20 @@ public class BatchConfiguration {
     }
 
     @Bean
-    ProductProcessor processor() {
-        return new ProductProcessor();
+    PersonProcessor processor() {
+        return new PersonProcessor();
     }
 
     @Bean
-    FlatFileItemWriter<Product> writer() {
-        BeanWrapperFieldExtractor<Product> extractor = new BeanWrapperFieldExtractor<>();
-        extractor.setNames(new String[] {"id", "quantity", "price"});
+    FlatFileItemWriter<Person> writer() {
+        BeanWrapperFieldExtractor<Person> extractor = new BeanWrapperFieldExtractor<>();
+        extractor.setNames(new String[] {"id", "firstname", "lastname", "birthdate"});
 
-        DelimitedLineAggregator<Product> aggregator = new DelimitedLineAggregator<>();
+        DelimitedLineAggregator<Person> aggregator = new DelimitedLineAggregator<>();
         aggregator.setDelimiter(",");
         aggregator.setFieldExtractor(extractor);
 
-        FlatFileItemWriter<Product> writer = new FlatFileItemWriter<>();
+        FlatFileItemWriter<Person> writer = new FlatFileItemWriter<>();
         writer.setResource(new FileSystemResource("output.csv"));
         writer.setShouldDeleteIfExists(true);
         writer.setLineAggregator(aggregator);
@@ -75,13 +75,12 @@ public class BatchConfiguration {
     }
 
     @Bean
-    Step priceChange(
-            ItemReader<Product> reader,
-            ItemProcessor<Product, Product> processor,
-            ItemWriter<Product> writer) {
+    Step birthdateChange( ItemReader<Person> reader,
+                          ItemProcessor<Person, Person> processor,
+                          ItemWriter<Person> writer ) {
 
         return stepBuilderFactory.get("priceChange")
-                .<Product, Product>chunk(50)
+                .<Person, Person>chunk(100)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
@@ -90,12 +89,14 @@ public class BatchConfiguration {
     }
 
     @Bean
-    Job changePriceJob(Step priceChange) {
+    Job AgeJob(Step birthdateChange) {
+
         return jobBuilderFactory.get("changePriceJob")
                 .incrementer(new RunIdIncrementer())
-                .flow(priceChange)
+                .flow(birthdateChange)
                 .end()
                 .build();
+
     }
 
 }
